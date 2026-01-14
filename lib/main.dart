@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:revision/Provider/profileProvider.dart';
 import 'package:revision/Provider/todoProvider.dart';
-import 'package:revision/modals/profileModal.dart';
 import 'package:revision/views/getX/getXpage.dart';
 import 'package:revision/views/taskScreen.dart';
 import 'package:revision/views/updateProfile.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => Todo()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: MyApp(),

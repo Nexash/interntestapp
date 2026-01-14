@@ -1,48 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:revision/Constants/colors.dart';
+import 'package:revision/Provider/todoProvider.dart';
 import 'package:revision/modals/taskModal.dart';
 
 class AddOrUpdateScrollerState extends StatefulWidget {
-
-
   final TaskModal? task;
   final int? index;
-// final Function(String name, String desc, int? index) onSubmit;
-const AddOrUpdateScrollerState({  super.key,
-     this.task,
+  // final Function(String name, String desc, int? index) onSubmit;
+  const AddOrUpdateScrollerState({
+    super.key,
+    this.task,
     this.index,
-  
+
     // required this.onSubmit,
-    });
-
-
-
-
+  });
 
   @override
-  State<AddOrUpdateScrollerState> createState() => _AddOrUpdateScrollerStateState();
+  State<AddOrUpdateScrollerState> createState() =>
+      _AddOrUpdateScrollerStateState();
 }
 
 class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
-    final _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-    final TextEditingController taskNameController = TextEditingController();
-    final TextEditingController taskDescriptionController = TextEditingController();
+  final TextEditingController taskNameController = TextEditingController();
+  final TextEditingController taskDescriptionController =
+      TextEditingController();
 
-
-
-
-
-@override
+  @override
   void initState() {
     super.initState();
     taskNameController.text = widget.task?.taskName ?? '';
     taskDescriptionController.text = widget.task?.taskDescrption ?? '';
   }
 
-  void submitTask(BuildContext scaffoldContext) {
+  void submitTask(BuildContext scaffoldContext) async {
     String taskname = taskNameController.text.trim();
     String taskDescription = taskDescriptionController.text.trim();
+    bool iscompleted = false;
 
     if (taskname.isEmpty || taskDescription.isEmpty) {
       ScaffoldMessenger.of(
@@ -54,21 +50,24 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
     TaskModal newTask = TaskModal(
       taskName: taskname,
       taskDescrption: taskDescription,
+      isCompleted: iscompleted,
     );
+    // Use provider
+    final taskProvider = context.read<TaskProvider>();
+    await taskProvider.addTask(newTask);
 
-   
-   
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Task successfully added.")));
-        Navigator.pop(context,newTask);
-    
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Task successfully added.")));
+      Navigator.pop(context);
+    }
 
     taskNameController.clear();
     taskDescriptionController.clear();
   }
 
-  void updateTask(int index, BuildContext scaffoldContext) {
+  void updateTask(int index, BuildContext scaffoldContext) async {
     String taskname = taskNameController.text.trim();
     String taskDescription = taskDescriptionController.text.trim();
 
@@ -79,13 +78,16 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
       return;
     }
 
-     TaskModal updatedTask = TaskModal(
-    taskName: taskNameController.text.trim(),
-    taskDescrption:taskDescriptionController.text.trim(),
-  );
+    TaskModal updatedTask = TaskModal(
+      taskName: taskNameController.text.trim(),
+      taskDescrption: taskDescriptionController.text.trim(),
+    );
 
-    Navigator.pop(context,{"index":index, "task":updatedTask}); // close bottom sheet
+    // Use provider
+    final taskProvider = context.read<TaskProvider>();
+    await taskProvider.updateTask(index, updatedTask);
 
+    Navigator.pop(context, {"index": index, "task": updatedTask});
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text("Task updated")));
@@ -94,11 +96,9 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
     taskDescriptionController.clear();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final parentContext = context;
-    
 
     return Padding(
       padding: EdgeInsets.only(
@@ -107,22 +107,22 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
       child: SingleChildScrollView(
         child: Container(
           decoration: BoxDecoration(
-            color:AppColors.primary,
+            color: AppColors.primary,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
             ),
           ),
-        
+
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text("Task name"),
-        
+
                 SizedBox(height: 8),
-        
+
                 TextFormField(
                   controller: taskNameController,
                   decoration: InputDecoration(
@@ -130,20 +130,19 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (value == null ||
-                        value.trim().isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return "Please enter task name";
                     }
                     return null;
                   },
                 ),
-        
+
                 SizedBox(height: 15),
-        
+
                 Text("Task Description"),
-        
+
                 SizedBox(height: 8),
-        
+
                 TextFormField(
                   controller: taskDescriptionController,
                   decoration: InputDecoration(
@@ -151,32 +150,24 @@ class _AddOrUpdateScrollerStateState extends State<AddOrUpdateScrollerState> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (value == null ||
-                        value.trim().isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return "Please enter task name";
                     }
                     return null;
                   },
                 ),
-        
+
                 ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-        
-                      if( widget.task==null || widget.index == null){
-                          submitTask(parentContext);
-                      }
-                      else{
+                      if (widget.task == null || widget.index == null) {
+                        submitTask(parentContext);
+                      } else {
                         updateTask(widget.index!, parentContext);
                       }
-                      
                     } else {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(
-                        SnackBar(
-                          content: Text("fill all fields"),
-                        ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("fill all fields")),
                       );
                     }
                   },

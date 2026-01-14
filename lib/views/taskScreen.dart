@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:revision/Constants/appTextStyles.dart';
 import 'package:revision/Constants/colors.dart';
 import 'package:revision/Provider/profileProvider.dart';
+import 'package:revision/Provider/todoProvider.dart';
 import 'package:revision/ReusableWidgets/bottomscroller.dart';
 import 'package:revision/apiFetchDisplay/displayScreen.dart';
 import 'package:revision/modals/profileModal.dart';
@@ -24,17 +25,16 @@ class Taskscreen extends StatefulWidget {
 class _TaskscreenState extends State<Taskscreen> {
   late ProfileModal
   userprofile; //yeta 1 ta variable declare garerw init ma bolayo ke widget.profil.name garerw bolaunu parena
-  List<TaskModal> tasks = [];
 
   @override
   void initState() {
     super.initState();
-    // userprofile = widget.profile;
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Task App", style: AppTextStyles.headline1),
@@ -119,68 +119,73 @@ class _TaskscreenState extends State<Taskscreen> {
             Center(child: Text("Task Area", style: AppTextStyles.headline2)),
 
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                itemCount: tasks.length,
-                itemBuilder: (Context, index) {
-                  final task = tasks[index];
-                  return Card(
-                    color: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 2,
-                    child: ListTile(
-                      key: ValueKey(task),
-                      leading: Icon(Icons.task),
-                      title: Text(task.taskName),
-                      subtitle: Text(task.taskDescrption),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () async {
-                              final result = await showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (context) {
-                                  return AddOrUpdateScrollerState(
-                                    task: tasks[index],
-                                    index: index,
+              child: Consumer<TaskProvider>(
+                builder: (_, provider, __) {
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    itemCount: provider.tasks.length,
+                    itemBuilder: (_, index) {
+                      final task = provider.tasks[index];
+                      return Card(
+                        color: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 2,
+                        child: ListTile(
+                          key: ValueKey(task),
+                          leading: Checkbox(
+                            value: provider.tasks[index].isCompleted,
+                            onChanged: (val) {
+                              final taskProvider = context.read<TaskProvider>();
+                              taskProvider.toggleCompletion(index);
+                            },
+                          ),
+                          title: Text(task.taskName),
+                          subtitle: Text(task.taskDescrption),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed: () async {
+                                  final result = await showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (context) {
+                                      return AddOrUpdateScrollerState(
+                                        task: provider.tasks[index],
+                                        index: index,
+                                      );
+                                    },
+                                  );
+
+                                  if (result is Map<String, dynamic>) {
+                                    int updatedIndex = result["index"];
+                                    TaskModal updatedTaskModal = result["task"];
+
+                                    provider.tasks[updatedIndex] =
+                                        updatedTaskModal;
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () async {
+                                  await context.read<TaskProvider>().deleteTask(
+                                    index,
+                                  );
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Task deleted")),
                                   );
                                 },
-                              );
-
-                              if (result is Map<String, dynamic>) {
-                                int updatedIndex = result["index"];
-                                TaskModal updatedTaskModal = result["task"];
-                                setState(() {
-                                  tasks[updatedIndex] = updatedTaskModal;
-                                });
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Try to add Task Again"),
-                                  ),
-                                );
-                              }
-                            },
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                tasks.removeAt(index);
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Task deleted")),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -190,25 +195,14 @@ class _TaskscreenState extends State<Taskscreen> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () async {
-          final result = await showModalBottomSheet(
+        onPressed: () {
+          showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             builder: (context) {
               return AddOrUpdateScrollerState(task: null, index: null);
             },
           );
-
-          if (result != null) {
-            if (result is TaskModal) {
-              setState(() {
-                tasks.add(result);
-              });
-            }
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Task added successfully!")));
-          }
         },
       ),
     );

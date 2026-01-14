@@ -9,9 +9,11 @@ part of 'taskModal.dart';
 TaskModal _$TaskModalFromJson(Map<String, dynamic> json) => TaskModal(
   taskName: json['taskName'] as String,
   taskDescrption: json['taskDescrption'] as String,
+  isCompleted: json['isCompleted'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$TaskModalToJson(TaskModal instance) => <String, dynamic>{
   'taskName': instance.taskName,
   'taskDescrption': instance.taskDescrption,
+  'isCompleted': instance.isCompleted,
 };

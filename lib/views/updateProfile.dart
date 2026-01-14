@@ -38,13 +38,6 @@ class _UpdatePrfoileScreenState extends State<UpdatePrfoileScreen> {
 
     context.read<ProfileProvider>().updateProfile(name, address, age, phoneNo);
 
-    // ProfileModal updatedProfile = ProfileModal(
-    //   name: name,
-    //   address: address,
-    //   age: age,
-    //   number: phoneNo,
-    // );
-
     Navigator.push(
       context,
       MaterialPageRoute(

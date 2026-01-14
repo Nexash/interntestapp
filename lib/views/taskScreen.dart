@@ -5,6 +5,7 @@ import 'package:revision/Constants/colors.dart';
 import 'package:revision/Provider/profileProvider.dart';
 import 'package:revision/Provider/todoProvider.dart';
 import 'package:revision/ReusableWidgets/bottomscroller.dart';
+import 'package:revision/Toggle_widget.dart';
 import 'package:revision/apiFetchDisplay/displayScreen.dart';
 import 'package:revision/modals/profileModal.dart';
 import 'package:revision/modals/taskModal.dart';
@@ -117,73 +118,103 @@ class _TaskscreenState extends State<Taskscreen> {
             ),
 
             Center(child: Text("Task Area", style: AppTextStyles.headline2)),
+            SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Consumer<TaskProvider>(
+                builder: (_, provider, __) {
+                  return ToggleHelper(
+                    iscompleted: provider.iscompleted, // current filter
+                    onToggle: (value) {
+                      provider.setFilter(value); // update filter
+                    },
+                  );
+                },
+              ),
+            ),
 
+            // here we  add the helper class which will give us a return value true or false
+            // (ToggleHelper)
+            // and then this value is passed to below consumer.
+            // according to retun value below list view builder will fetch tasks respected to completed as true incompleted as false
+            //and display the tasks as card
             Expanded(
               child: Consumer<TaskProvider>(
                 builder: (_, provider, __) {
+                  final taskToShow = provider.filteredTasks;
+                  if (taskToShow.isEmpty) {
+                    return Center(child: Text("No data to show"));
+                  }
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: provider.tasks.length,
+                    itemCount: taskToShow.length,
                     itemBuilder: (_, index) {
-                      final task = provider.tasks[index];
-                      return Card(
-                        color: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 2,
-                        child: ListTile(
-                          key: ValueKey(task),
-                          leading: Checkbox(
-                            value: provider.tasks[index].isCompleted,
-                            onChanged: (val) {
-                              final taskProvider = context.read<TaskProvider>();
-                              taskProvider.toggleCompletion(index);
-                            },
-                          ),
-                          title: Text(task.taskName),
-                          subtitle: Text(task.taskDescrption),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit),
-                                onPressed: () async {
-                                  final result = await showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (context) {
-                                      return AddOrUpdateScrollerState(
-                                        task: provider.tasks[index],
-                                        index: index,
+                      final task = taskToShow[index];
+                      final originalIndex = provider.tasks.indexOf(task);
+                      return Column(
+                        children: [
+                          SizedBox(height: 18),
+                          Card(
+                            color: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            elevation: 2,
+                            child: ListTile(
+                              key: ValueKey(task),
+                              leading: Checkbox(
+                                value: task.isCompleted,
+                                onChanged: (val) {
+                                  provider.toggleCompletion(originalIndex);
+                                },
+                              ),
+                              title: Text(task.taskName),
+                              subtitle: Text(task.taskDescrption),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed: () async {
+                                      final result = await showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        builder: (context) {
+                                          return AddOrUpdateScrollerState(
+                                            task: provider.tasks[index],
+                                            index: index,
+                                          );
+                                        },
+                                      );
+
+                                      if (result is Map<String, dynamic>) {
+                                        int updatedIndex = result["index"];
+                                        TaskModal updatedTaskModal =
+                                            result["task"];
+
+                                        provider.tasks[updatedIndex] =
+                                            updatedTaskModal;
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () async {
+                                      await context
+                                          .read<TaskProvider>()
+                                          .deleteTask(originalIndex);
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text("Task deleted")),
                                       );
                                     },
-                                  );
-
-                                  if (result is Map<String, dynamic>) {
-                                    int updatedIndex = result["index"];
-                                    TaskModal updatedTaskModal = result["task"];
-
-                                    provider.tasks[updatedIndex] =
-                                        updatedTaskModal;
-                                  }
-                                },
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () async {
-                                  await context.read<TaskProvider>().deleteTask(
-                                    index,
-                                  );
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Task deleted")),
-                                  );
-                                },
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   );

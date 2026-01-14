@@ -10,6 +10,17 @@ class TaskProvider extends ChangeNotifier {
 
   List<TaskModal> get tasks => _tasks;
 
+  bool iscompleted = false;
+
+  List<TaskModal> get filteredTasks {
+    return _tasks.where((task) => task.isCompleted == iscompleted).toList();
+  }
+
+  void setFilter(bool completed) {
+    iscompleted = completed;
+    notifyListeners();
+  }
+
   Future<void> loadTasks() async {
     _tasks = await SharedPrefHelper.getTasks('tasks');
     notifyListeners();
@@ -28,6 +39,11 @@ class TaskProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // void updateTaskStatus(int index, bool iscompleted) {
+  //   _tasks[index].isCompleted = iscompleted;
+  //   notifyListeners();
+  // }
 
   Future<void> deleteTask(int index) async {
     if (index >= 0 && index < _tasks.length) {
